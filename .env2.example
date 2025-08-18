@@ -1,0 +1,78 @@
+# This file defines comprehensive parameters and settings for the trading bot.
+# Carefully review and adjust values to match your trading strategy and risk tolerance.
+
+# Bot identification and connection settings
+name: "bot-sniper-2"
+env_file: ".env"
+rpc_endpoint: "${SOLANA_NODE_RPC_ENDPOINT}"
+wss_endpoint: "${SOLANA_NODE_WSS_ENDPOINT}"
+private_key: "${SOLANA_PRIVATE_KEY}"
+
+enabled: true
+separate_process: true
+
+# Options: "pump_fun" (default), "lets_bonk"
+platform: "pump_fun"
+
+# Geyser configuration (fastest method for getting updates)
+geyser:
+  endpoint: "${GEYSER_ENDPOINT}"
+  api_token: "${GEYSER_API_TOKEN}"
+  auth_type: ""
+
+# Trading parameters
+# Control trade execution: amount of SOL per trade and acceptable price deviation
+trade:
+  buy_amount: 0.01         # SOL per buy
+  buy_slippage: 0.05       # 5% entry slippage (fast fills without huge overpay)
+  sell_slippage: 0.08      # 8% exit slippage (exits succeed under volatility)
+
+  # Exit strategy configuration
+  exit_strategy: "tp_sl"   # "time_based", "tp_sl", "manual"
+  take_profit_percentage: 0.18  # 18% TP
+  stop_loss_percentage: 0.09    # 9% SL (cut losers quickly)
+  max_hold_time: 50        # hard flat timer (seconds)
+  price_check_interval: 1  # check once per second
+
+  # EXTREME FAST mode configuration
+  # When enabled, skips waiting for the bonding curve to stabilize and RPC price check.
+  # The bot buys the specified number of tokens directly, making the process faster but less precise.
+  extreme_fast_mode: false
+  # extreme_fast_token_amount: 20
+
+# Priority fee configuration
+# Manage transaction speed and cost on the Solana network.
+# Note: dynamic mode requires an additional RPC call, which slows down the buying process.
+priority_fees:
+  enable_dynamic: true     # estimate from recent txs
+  enable_fixed: false      # use dynamic, not fixed
+  fixed_amount: 250_000    # (ignored unless enable_fixed: true)
+  extra_percentage: 0.10   # modest top-up over estimator
+  hard_cap: 500_000        # cap fee spend (lower than 600k)
+
+# Filters for token selection
+filters:
+  match_string: null       # only process tokens with this string (optional)
+  bro_address: null        # only trade tokens from this creator (optional)
+  listener_type: "logs"    # faster detection than "blocks"
+  max_token_age: 12.0      # accept tokens up to 12s old
+  marry_mode: false        # do not bag-hold
+  yolo_mode: false         # do not chain buys; one-at-a-time
+
+# Retry and timeout settings
+retries:
+  max_attempts: 5
+  wait_after_creation: 2.0 # short pause so accounts exist
+  wait_after_buy: 3        # minimal settle time before exits
+  wait_before_new_token: 3 # recycle quickly once flat
+
+# Token and account management
+cleanup:
+  # "disabled" | "on_fail" | "after_sell" | "post_session"
+  mode: "post_session"
+  force_close_with_burn: false
+  with_priority_fee: true  # speed up cleanup txs
+
+# Node provider configuration (not implemented)
+node:
+  max_rps: 25
