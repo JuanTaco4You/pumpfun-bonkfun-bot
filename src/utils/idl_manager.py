@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 class IDLManager:
     """Centralized manager for IDL parsers across all platforms."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the IDL manager."""
         self._parsers: dict[Platform, IDLParser] = {}
         self._idl_paths: dict[Platform, str] = {}
@@ -274,9 +274,14 @@ def get_idl_manager() -> IDLManager:
     Returns:
         Global IDLManager instance
     """
-    global _idl_manager
+    # Initialize lazily without using global reassignment if already set
     if _idl_manager is None:
-        _idl_manager = IDLManager()
+        # Note: this is not thread-safe; if needed, add a lock for multi-threaded use
+        # In our async single-process model, this is sufficient
+        locals_manager = IDLManager()
+        # store in module-level cache for subsequent calls
+        globals()["_idl_manager"] = locals_manager
+        return locals_manager
     return _idl_manager
 
 

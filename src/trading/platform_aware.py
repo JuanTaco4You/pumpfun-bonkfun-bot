@@ -26,11 +26,12 @@ class PlatformAwareBuyer(Trader):
         wallet: Wallet,
         priority_fee_manager: PriorityFeeManager,
         amount: float,
+        *,
         slippage: float = 0.01,
         max_retries: int = 5,
         extreme_fast_token_amount: int = 0,
         extreme_fast_mode: bool = False,
-    ):
+    ) -> None:
         """Initialize platform-aware token buyer."""
         self.client = client
         self.wallet = wallet
@@ -156,9 +157,10 @@ class PlatformAwareSeller(Trader):
         client: SolanaClient,
         wallet: Wallet,
         priority_fee_manager: PriorityFeeManager,
+        *,
         slippage: float = 0.25,
         max_retries: int = 5,
-    ):
+    ) -> None:
         """Initialize platform-aware token seller."""
         self.client = client
         self.wallet = wallet
