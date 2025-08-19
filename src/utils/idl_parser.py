@@ -9,6 +9,7 @@ import struct
 from typing import Any
 
 import base58
+from pathlib import Path
 
 # Constants for Anchor data layout
 DISCRIMINATOR_SIZE = 8
@@ -40,7 +41,7 @@ class IDLParser:
         ),  # Min size is for the length prefix
     }
 
-    def __init__(self, idl_path: str, verbose: bool = False):
+    def __init__(self, idl_path: str, verbose: bool = False) -> None:
         """
         Initialize the IDL parser.
 
@@ -49,7 +50,8 @@ class IDLParser:
             verbose: Whether to print debug information during initialization
         """
         self.verbose = verbose
-        with open(idl_path) as f:
+        path = Path(idl_path)
+        with path.open(encoding="utf-8") as f:
             self.idl = json.load(f)
         self.instructions: dict[bytes, dict[str, Any]] = {}
         self.events: dict[bytes, dict[str, Any]] = {}
@@ -119,7 +121,7 @@ class IDLParser:
                     data_args, decode_offset, arg["type"]
                 )
                 args[arg["name"]] = value
-            except Exception as e:
+            except (ValueError, struct.error) as e:
                 if self.verbose:
                     print(f"❌ Decode error in argument '{arg['name']}': {e}")
                 return None
@@ -238,7 +240,7 @@ class IDLParser:
                         else:
                             print(f"  -> {value}")
 
-                except Exception as e:
+                except (ValueError, struct.error, IndexError) as e:
                     if self.verbose:
                         print(f"Error decoding field {field['name']}: {e}")
                     # Don't return None here, continue with other fields
@@ -246,7 +248,7 @@ class IDLParser:
 
             return {"event_name": event_name_actual, "fields": event_fields}
 
-        except Exception as e:
+        except (ValueError, struct.error, IndexError) as e:
             if self.verbose:
                 print(f"❌ Error decoding event {event_name_actual}: {e}")
             return None
@@ -276,7 +278,7 @@ class IDLParser:
                     if event_data:
                         return event_data
 
-                except Exception as e:
+                except (ValueError, base64.binascii.Error) as e:
                     if self.verbose:
                         print(f"Failed to decode log data: {e}")
                     continue
@@ -325,7 +327,7 @@ class IDLParser:
             decoded_data, _ = self._decode_defined_type(data, 0, account_type_name)
             return decoded_data
 
-        except Exception as e:
+        except (ValueError, struct.error, IndexError) as e:
             if self.verbose:
                 print(f"Error decoding account data for {account_type_name}: {e}")
             return None
@@ -334,14 +336,14 @@ class IDLParser:
     # Internal Helper Methods
     # --------------------------------------------------------------------------
 
-    def _build_instruction_map(self):
+    def _build_instruction_map(self) -> None:
         """Build a map of discriminators to instruction definitions."""
         for instruction in self.idl.get("instructions", []):
             # The discriminator from the JSON IDL is a list of u8 integers.
             discriminator = bytes(instruction["discriminator"])
             self.instructions[discriminator] = instruction
 
-    def _build_event_map(self):
+    def _build_event_map(self) -> None:
         """Build a map of discriminators to event definitions."""
         for event in self.idl.get("events", []):
             # The discriminator from the JSON IDL is a list of u8 integers.
@@ -352,12 +354,12 @@ class IDLParser:
                     f"📅 Loaded event: {event['name']} with discriminator {discriminator.hex()}"
                 )
 
-    def _build_type_map(self):
+    def _build_type_map(self) -> None:
         """Build a map of type names to their definitions."""
         for type_def in self.idl.get("types", []):
             self.types[type_def["name"]] = type_def
 
-    def _calculate_instruction_sizes(self):
+    def _calculate_instruction_sizes(self) -> None:
         """Calculate minimum data sizes for each instruction."""
         for discriminator, instruction in self.instructions.items():
             try:
@@ -367,7 +369,7 @@ class IDLParser:
                 self.instruction_min_sizes[discriminator] = min_size
                 if self.verbose and instruction["name"] == "initialize":
                     print(f"📏 Initialize instruction min size: {min_size} bytes")
-            except Exception as e:
+            except (ValueError, KeyError, TypeError) as e:
                 if self.verbose:
                     print(f"⚠️  Could not calculate size for {instruction['name']}: {e}")
                 self.instruction_min_sizes[discriminator] = DISCRIMINATOR_SIZE

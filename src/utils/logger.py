@@ -18,14 +18,13 @@ def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     Returns:
         Configured logger
     """
-    global _loggers
-
-    if name in _loggers:
-        return _loggers[name]
+    # Avoid mutable global writes when possible; create once per name
+    logger = _loggers.get(name)
+    if logger is not None:
+        return logger
 
     logger = logging.getLogger(name)
     logger.setLevel(level)
-
     _loggers[name] = logger
     return logger
 
